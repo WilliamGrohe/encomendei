@@ -14,6 +14,15 @@ export default function Header() {
               </NavigationMenuLink>
             </Link>
           </NavigationMenuItem>
+
+          <NavigationMenuItem>
+            <Link href="/encomendas" legacyBehavior passHref>
+              <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                Encomendas Pendentes
+              </NavigationMenuLink>
+            </Link>
+          </NavigationMenuItem>
+
           <NavigationMenuItem>
             <Link href="/livros/create" legacyBehavior passHref>
               <NavigationMenuLink className={navigationMenuTriggerStyle()}>

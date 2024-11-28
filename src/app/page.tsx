@@ -10,75 +10,50 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import Header from "@/components/Header";
+import { FilterBooks, SelectedBooks } from "@/components/FilterBooks";
+import { useSelectBooks } from "./contexts/SelectBooksContext";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuIndicator,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  NavigationMenuViewport,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
-
-
+import { Trash2, } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { supabase } from "./services/supabaseClient";
-import { DbType } from "./database.types";
-import { ChangeEvent, ChangeEventHandler, useEffect, useState } from "react";
-import Header from "@/components/Header";
+import { useState } from "react";
+import { SaveDeliveryType } from "./database.types";
 
 export default function Home() {
-  const [livros, setLivros] = useState<DbType[]>([]);
-  const [pesquisa, setPesquisa] = useState("")
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
+  const { items, removeItem } = useSelectBooks();
+  const [ dadosContato, setDadosContato ] = useState<SaveDeliveryType>()
 
-  const pesquisaLivros = (e: any) => {
-    const novoValor = e.target.value;
-    setPesquisa(novoValor); // Atualiza o estado com o novo valor do input
-
-    // Limpa o timeout anterior se houver
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
+  const salvarEncomenda = async () => {
+    console.log(dadosContato)
+    const saveData = {"nome": dadosContato?.nome, "telefone": dadosContato?.telefone, "vendedor": dadosContato?.vendedor, 
+      "livros": [...items]}
+    try {
+      await supabase.from("encomendas").upsert([saveData]), {onConflict: 'id'};
+      console.log(saveData)
+    } catch (error) {
+      console.error(error.message);
     }
+  };
 
-    // Cria um novo timeout
-    const timeout = setTimeout(() => {
-      buscaPesquisaDb(novoValor); // Chama a função de busca após o delay
-    }, 1000); // 300ms de delay (você pode ajustar esse valor)
-
-    setDebounceTimeout(timeout); // Armazena o timeout para referência
-
-    console.log(livros)
-  }
-
-  async function buscaPesquisaDb(titulo: string) {
-    const { data, error } = await supabase
-      .from("livros")
-      .select()
-      .textSearch("titulo", titulo)
-
-    if(error){
-      console.error("Error fetching data:", error.message);
-    } else {
-      setLivros(data)
-    }
-  }
+  const onChange = (e: any) => {
+    setDadosContato({ ...dadosContato!, [e.target.name]: e.target.value });
+  };
 
   return (
     <>
       <Header />
+      <div className="w-full">
+        <FilterBooks />
+      </div>
       <div className="flex">
         <Card>
           <CardHeader>
@@ -87,52 +62,66 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-2">
-              <Input placeholder="Nome:" type="text" />
-              <Input placeholder="Telefone:" type="tel" />
-              <Input 
-              placeholder="Título do livro" 
-              value={pesquisa}
-              onChange={pesquisaLivros}
-              />
-              <span>{pesquisa}</span>
-              <button onClick={buscaPesquisaDb}>Pesquisar</button>
+              <Input placeholder="Nome:" name="nome" type="text" onChange={onChange}/>
+              <Input placeholder="Telefone:" name="telefone" type="tel" onChange={onChange}/>
+              <Input placeholder="Nome:" name="vendedor" type="text" onChange={onChange}/>
             </div>
-            <div className="">
-              <Table>
-                <TableCaption>A list of your recent invoices.</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">Código</TableHead>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-
-                  {livros.map((livro) => (
-                    <TableRow key={livro.id}>
-                      <TableCell className="font-medium">{livro.id}</TableCell>
-                      <TableCell>{livro.titulo}</TableCell>
-                      <TableCell>{livro.editora}</TableCell>
-                      <TableCell className="text-right">
-                        {livro.valor}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={3}>Total</TableCell>
-                    <TableCell className="text-right">$2,500.00</TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
+            <div className="mt-7">
+              <h1 className="font-bold">Livros Selecionados:</h1>
+              <div>
+                <h1>Itens Selecionados</h1>
+                {items.length === 0 ? (
+                  <p>Nenhum item selecionado.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Selecionar</TableHead>
+                        <TableHead className="w-[100px]">Código</TableHead>
+                        <TableHead>Título</TableHead>
+                        <TableHead>Editora</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <button onClick={() => removeItem(item.id)}>
+                              <Trash2 size={18} />
+                            </button>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {item.id}
+                          </TableCell>
+                          <TableCell>{item.titulo}</TableCell>
+                          <TableCell>{item.editora}</TableCell>
+                          <TableCell className="text-right">
+                            {item.valor}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                    <TableFooter className="text-end">
+                      <TableRow className="">
+                        {/* <p>Soma total: <span className="font-bold text-red-800">R$ </span></p> */}
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                )}
+              </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <p>Finalizar Encomenda</p>
-            <p>Emitir Orçamento</p>
+          <CardFooter className="gap-4">
+            <Button
+              className="bg-green-700 hover:bg-green-800"
+              onClick={salvarEncomenda}
+            >
+              Finalizar Encomenda
+            </Button>
+            <Button className="bg-cyan-700 hover:bg-cyan-800">
+              Emitir Orçamento
+            </Button>
           </CardFooter>
         </Card>
       </div>

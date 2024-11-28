@@ -1,3 +1,5 @@
+import { Database } from "./supabase";
+
 export type Json =
   | string
   | number
@@ -37,12 +39,33 @@ export interface DatabaseType {
   };
 }
 
+// export interface DbType {
+//   id: number,
+//   titulo: string,
+//   materia: string,
+//   escola: string,
+//   editora: string,
+//   ano: string,
+//   valor: number,
+// }
 export interface DbType {
-  id: number,
-  titulo: string,
-  materia: string,
-  escola: string,
-  editora: string,
-  ano: string,
-  valor: number,
+  ano: string;
+  editora: string;
+  escola: string;
+  escolas: Database["public"]["Enums"]["escolas"][];
+  id: number;
+  isbn: number;
+  materia: string;
+  teste: Database["public"]["Enums"]["materias"] | undefined;
+  titulo: string;
+  valor: number;
+}
+
+export interface SaveDeliveryType {
+  id: number;
+  nome: string;
+  telefone: number;
+  vendedor: string;
+  finalizado: boolean;
+  livros: [DbType];
 }
